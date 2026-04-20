@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Limen</title>
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Cormorant+Garamond:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#f0ebe0;--ink:#2a2520;--mid:rgba(42,37,32,0.5);--faint:rgba(42,37,32,0.2);}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--paper);color:var(--ink);}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:99;opacity:0.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px;}
+
+.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.7s ease;}
+.screen.active{opacity:1;pointer-events:all;}
+#sketch-bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;}
+
+/* ENTRY */
+#screen-entry{z-index:10;flex-direction:column;text-align:center;}
+.wordmark{position:fixed;top:2rem;left:50%;transform:translateX(-50%);font-family:'IM Fell English',serif;font-size:12px;letter-spacing:.35em;text-transform:uppercase;color:var(--mid);z-index:20;}
+.entry-q{font-family:'IM Fell English',serif;font-size:clamp(17px,3vw,28px);font-style:italic;line-height:1.75;color:var(--ink);max-width:500px;padding:0 2rem;opacity:0;transform:translateY(8px);transition:opacity 1.2s ease 0.4s,transform 1.2s ease 0.4s;margin-bottom:3rem;}
+.entry-q.show{opacity:1;transform:translateY(0);}
+
+/* DOOR FRAME — no panel, just the frame with light inside */
+.door-scene{position:relative;width:100px;height:170px;margin:0 auto 2.5rem;opacity:0;transition:opacity 0.8s ease 1.2s;}
+.door-scene.show{opacity:1;}
+.door-inner{position:absolute;top:3px;left:3px;right:3px;bottom:3px;background:rgba(255,248,230,0.15);transition:background 1.5s ease;}
+.door-inner.lit{background:rgba(255,240,195,0.75);}
+.enter-btn{position:absolute;bottom:-2.5rem;left:50%;transform:translateX(-50%);font-family:'IM Fell English',serif;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--mid);background:none;border:none;border-bottom:1px solid var(--faint);cursor:pointer;padding:4px 0;white-space:nowrap;transition:color .25s,border-color .25s;}
+.enter-btn:hover{color:var(--ink);border-color:var(--mid);}
+
+#overlay{position:fixed;inset:0;background:rgb(255,240,195);z-index:50;opacity:0;pointer-events:none;transition:opacity 0.6s ease;}
+#overlay.in{opacity:1;pointer-events:all;}
+
+/* STORY */
+#screen-story{z-index:10;flex-direction:column;align-items:flex-start;justify-content:flex-start;padding:0;overflow:hidden;}
+#story-scroll{width:100%;height:100vh;overflow-y:auto;padding:3rem 2rem 5rem;}
+#story-scroll::-webkit-scrollbar{width:2px;}
+#story-scroll::-webkit-scrollbar-thumb{background:var(--faint);}
+#story-content{width:100%;max-width:520px;margin:0 auto;}
+
+.ln{font-family:'IM Fell English',serif;font-size:clamp(15px,2.2vw,20px);line-height:1.9;color:var(--ink);margin-bottom:.2rem;opacity:0;transform:translateY(4px);transition:opacity .8s ease,transform .8s ease;}
+.ln.show{opacity:1;transform:translateY(0);}
+.ln.limen{font-style:italic;}
+.ln.you{font-style:normal;border-left:1.5px solid var(--faint);padding-left:.875rem;}
+.ln.dim{font-style:normal;font-family:'Cormorant Garamond',serif;font-size:clamp(12px,1.6vw,14px);color:var(--mid);margin-top:1.5rem;}
+.sp{height:1rem;}.rule{width:32px;height:1px;background:var(--faint);margin:.75rem 0;}
+
+.iw{margin-top:1.5rem;opacity:0;transform:translateY(4px);transition:opacity .7s ease,transform .7s ease;}
+.iw.show{opacity:1;transform:translateY(0);}
+.grp{margin-bottom:1.75rem;}
+.grp-label{font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--mid);margin-bottom:.75rem;}
+.row2{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;}
+.ws{position:relative;padding-top:16px;}
+.ws .wl{position:absolute;top:1px;left:2px;font-family:'Cormorant Garamond',serif;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);}
+.ws input{font-family:'IM Fell English',serif;font-size:15px;color:var(--ink);background:transparent;border:none;border-bottom:1px solid var(--faint);padding:3px 2px;width:130px;outline:none;transition:border-color .2s;}
+.ws input.sm{width:92px;}
+.ws input:focus{border-color:var(--mid);}
+.ws input::placeholder{color:var(--faint);}
+textarea.ta{font-family:'IM Fell English',serif;font-size:15px;color:var(--ink);background:transparent;border:none;border-bottom:1px solid var(--faint);width:100%;max-width:440px;outline:none;resize:none;height:52px;line-height:1.75;padding:4px 2px;display:block;}
+textarea.ta::placeholder{color:var(--faint);}
+.sbtn{font-family:'Cormorant Garamond',serif;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--mid);background:none;border:none;border-bottom:1px solid var(--faint);padding:3px 0;cursor:pointer;transition:color .2s,border-color .2s;display:inline-block;margin-top:.5rem;}
+.sbtn:hover{color:var(--ink);border-color:var(--mid);}
+.sbtn:disabled{opacity:.3;cursor:default;}
+.hint{font-family:'Cormorant Garamond',serif;font-size:10px;color:var(--faint);letter-spacing:.04em;margin-top:4px;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.cursor::after{content:'|';animation:blink 1s step-end infinite;color:var(--mid);}
+</style>
+</head>
+<body>
+<div id="overlay"></div>
+<canvas id="sketch-bg"></canvas>
+
+<div class="screen active" id="screen-entry">
+  <div class="wordmark">Limen</div>
+  <div class="entry-q" id="eq">A story made from your life.<br>Come and play with Limen.</div>
+  <div class="door-scene" id="door-scene">
+    <div class="door-inner" id="door-inner"></div>
+    <svg viewBox="0 0 100 170" xmlns="http://www.w3.org/2000/svg" fill="none" style="position:absolute;inset:0;width:100%;height:100%;pointer-events:none;">
+      <path d="M6,4 Q5.5,86 6,166" stroke="#2a2520" stroke-width="2.2" fill="none"/>
+      <path d="M94,4 Q94.5,86 94,166" stroke="#2a2520" stroke-width="2.2" fill="none"/>
+      <path d="M7,4 Q50,-5 93,4" stroke="#2a2520" stroke-width="1.2" fill="none" opacity="0.5"/>
+    </svg>
+    <button class="enter-btn" id="enter-btn" onclick="openDoor()">Enter</button>
+  </div>
+</div>
+
+<div class="screen" id="screen-story">
+  <div id="story-scroll"><div id="story-content"></div></div>
+</div>
+
+<script>
+const sc=document.getElementById('sketch-bg');
+const sctx=sc.getContext('2d');
+let sW,sH,lines=[],sa=0;
+function buildLines(){
+  lines=[];const r=(a,b)=>a+Math.random()*(b-a);
+  for(let i=0;i<5;i++){const y=sH*(0.57+i*0.042),pts=[];let x=0;while(x<sW){pts.push({x,y:y+(Math.random()-.5)*6});x+=r(18,44);}lines.push({pts,a:0.032+i*0.007,w:0.32});}
+  for(let i=0;i<65;i++){const x=r(0,sW),y=r(sH*.64,sH*.92),l=r(10,52),ang=r(-.16,.16);lines.push({pts:[{x,y},{x:x+Math.cos(ang)*l,y:y+Math.sin(ang)*l}],a:r(.022,.055),w:r(.24,.52)});}
+  for(let s=0;s<2;s++){const bx=s===0?r(sW*.07,sW*.19):r(sW*.81,sW*.93),by=r(sH*.34,sH*.56);lines.push({pts:[{x:bx,y:sH*.74},{x:bx+r(-4,4),y:by}],a:.065,w:.65});for(let b=0;b<10;b++){const by2=by+b*(sH*.74-by)/10,sp=r(6,28)*(s===0?1:-1);lines.push({pts:[{x:bx,y:by2},{x:bx+sp,y:by2-r(3,16)}],a:r(.028,.075),w:r(.22,.46)});}}
+  const cx=sW*.5+r(-22,22),cy=sH*.41,bw=r(32,58),bh=r(22,42);
+  [[{x:cx,y:cy},{x:cx+bw,y:cy}],[{x:cx,y:cy},{x:cx,y:cy+bh}],[{x:cx+bw,y:cy},{x:cx+bw,y:cy+bh}],[{x:cx-3,y:cy},{x:cx+bw/2,y:cy-r(9,18)},{x:cx+bw+3,y:cy}]].forEach(p=>lines.push({pts:p,a:.045,w:.4}));
+}
+function drawS(a){sctx.clearRect(0,0,sW,sH);for(const l of lines){if(l.pts.length<2)continue;sctx.beginPath();sctx.moveTo(l.pts[0].x,l.pts[0].y);for(let i=1;i<l.pts.length;i++)sctx.lineTo(l.pts[i].x,l.pts[i].y);sctx.strokeStyle=`rgba(42,37,32,${l.a*a})`;sctx.lineWidth=l.w;sctx.stroke();}}
+function resizeS(){sW=sc.width=window.innerWidth;sH=sc.height=window.innerHeight;buildLines();}
+resizeS();window.addEventListener('resize',resizeS);
+(function loop(){if(sa<1)sa=Math.min(1,sa+.003);drawS(sa);requestAnimationFrame(loop);})();
+
+window.addEventListener('load',()=>{
+  setTimeout(()=>document.getElementById('eq').classList.add('show'),300);
+  setTimeout(()=>document.getElementById('door-scene').classList.add('show'),1000);
+});
+
+function openDoor(){
+  const btn=document.getElementById('enter-btn');btn.style.opacity='0';btn.disabled=true;
+  document.getElementById('door-inner').classList.add('lit');
+  setTimeout(()=>{
+    const ov=document.getElementById('overlay');ov.classList.add('in');
+    setTimeout(()=>{
+      document.getElementById('screen-entry').classList.remove('active');
+      document.getElementById('screen-story').classList.add('active');
+      startStory();
+      setTimeout(()=>ov.classList.remove('in'),100);
+    },600);
+  },1000);
+}
+
+const C=document.getElementById('story-content');
+const scrl=document.getElementById('story-scroll');
+function wait(ms){return new Promise(r=>setTimeout(r,ms));}
+function dn(){scrl.scrollTo({top:scrl.scrollHeight,behavior:'smooth'});}
+function addLn(text,cls){const el=document.createElement('p');el.className='ln'+(cls?' '+cls:'');el.textContent=text||'';C.appendChild(el);dn();return el;}
+function addSp(){const d=document.createElement('div');d.className='sp';C.appendChild(d);}
+function addRule(){const d=document.createElement('div');d.className='rule';C.appendChild(d);}
+async function type(el,txt,spd=30){return new Promise(res=>{el.classList.add('cursor');let i=0;const iv=setInterval(()=>{el.textContent+=txt[i];i++;dn();if(i>=txt.length){clearInterval(iv);el.classList.remove('cursor');res();}},spd);});}
+async function say(txt,spd=30,delay=150){await wait(delay);const el=addLn('','limen');el.classList.add('show');await type(el,txt,spd);return el;}
+async function ask(prompt,max=500){const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:max,messages:[{role:'user',content:prompt}]})});const d=await res.json();return d.content.filter(b=>b.type==='text').map(b=>b.text).join('').trim();}
+function parseJSON(txt){return JSON.parse(txt.replace(/```json|```/g,'').trim());}
+function addKD(fn){function h(e){if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){document.removeEventListener('keydown',h);fn();}}document.addEventListener('keydown',h);return h;}
+
+async function startStory(){
+  C.innerHTML='';addSp();
+  await say('Give me two things — anything.',30);
+  await wait(300);
+  await say('And tell me one thing you really want to do but haven\'t yet.',30);
+  await wait(400);
+  showSetupInputs();
+}
+
+function showSetupInputs(){
+  const w=document.createElement('div');w.className='iw';
+  w.innerHTML=`
+    <div class="grp">
+      <div class="grp-label">First thing</div>
+      <div class="row2">
+        <div class="ws"><span class="wl">noun</span><input id="love" placeholder="e.g. mirror" autocomplete="off"></div>
+        <div class="ws"><span class="wl">one word to describe it</span><input id="love-adj" class="sm" placeholder="e.g. silent" autocomplete="off"></div>
+      </div>
+    </div>
+    <div class="grp">
+      <div class="grp-label">Second thing</div>
+      <div class="row2">
+        <div class="ws"><span class="wl">noun</span><input id="want" placeholder="e.g. rain" autocomplete="off"></div>
+        <div class="ws"><span class="wl">one word to describe it</span><input id="want-adj" class="sm" placeholder="e.g. sudden" autocomplete="off"></div>
+      </div>
+    </div>
+    <div class="grp">
+      <div class="grp-label">You, right now</div>
+      <div class="row2">
+        <div class="ws"><span class="wl">one word</span><input id="you-adj" placeholder="e.g. tired" autocomplete="off"></div>
+      </div>
+    </div>
+    <div class="grp">
+      <div class="grp-label">Something you really want to do but haven't yet</div>
+      <textarea class="ta" id="goal" placeholder="write it here..." rows="2"></textarea>
+    </div>
+    <button class="sbtn" onclick="submitSetup(this)">This is my world →</button>`;
+  C.appendChild(w);setTimeout(()=>{w.classList.add('show');dn();document.getElementById('love').focus();},300);
+}
+
+async function submitSetup(btn){
+  const fields=['love','love-adj','want','want-adj','you-adj','goal'];
+  const vals={};let ok=true;
+  fields.forEach(id=>{const v=document.getElementById(id).value.trim();if(!v){document.getElementById(id).style.borderBottomColor='rgba(139,58,30,0.45)';ok=false;}else vals[id]=v;});
+  if(!ok)return;
+  btn.disabled=true;
+  const w=btn.closest('.iw');w.style.transition='opacity .35s';w.style.opacity='0';
+  await wait(380);w.remove();
+
+  window.S={
+    love:vals['love'],loveAdj:vals['love-adj'],
+    want:vals['want'],wantAdj:vals['want-adj'],
+    youAdj:vals['you-adj'],goal:vals['goal']
+  };
+
+  addSp();
+  await say(`${vals['love']} — ${vals['love-adj']}.`,32);
+  await wait(200);
+  await say(`${vals['want']} — ${vals['want-adj']}.`,32);
+  await wait(200);
+  await say(`You — ${vals['you-adj']}.`,32);
+  await wait(600);
+
+  const thinking=await say('...',50);
+  try{
+    const S=window.S;
+    const bg=await ask(`Write ONE plain sentence placing these three things together in a situation: a ${S.love} (${S.loveAdj}), ${S.want} (${S.wantAdj}), and a person. The person wants: "${S.goal}". Use plain everyday language. No metaphors. No literary style. Use "you" to refer to the person — never she/he/they, never any name. Just state the situation plainly.`,150);
+    thinking.style.opacity='0';await wait(350);thinking.remove();
+    window.BG=bg;addSp();await say(bg,22);
+  }catch(e){
+    thinking.textContent=`A ${window.S.love}, ${window.S.want}, and you. You are all in the same place.`;
+    window.BG=thinking.textContent;
+  }
+  await wait(500);
+  const bw=document.createElement('div');bw.className='iw';
+  bw.innerHTML='<button class="sbtn" onclick="beginConflict(this)">The story begins →</button>';
+  C.appendChild(bw);setTimeout(()=>{bw.classList.add('show');dn();},300);
+}
+
+async function beginConflict(btn){
+  btn.disabled=true;const w=btn.closest('.iw');w.style.opacity='0';await wait(380);w.remove();
+  addSp();addRule();addSp();
+  window.STORY=[];window.TURNS=0;
+  try{
+    const S=window.S;
+    const txt=await ask(`Write ONE plain sentence to open this story. Something small happens or shifts. Do not resolve it. Use plain direct language, no literary style, no metaphors. Refer to the person as "you" — never she/he/they, never any name.\n\nThe three characters: a ${S.love} (${S.loveAdj}), ${S.want} (${S.wantAdj}), you (${S.youAdj}).\nSituation: ${window.BG}`,120);
+    window.STORY.push({role:'limen',text:txt});await say(txt,22);
+  }catch(e){
+    const fb=`The ${window.S.love} was there. So was ${window.S.want}. The person reached for one of them.`;
+    window.STORY.push({role:'limen',text:fb});await say(fb,22);
+  }
+  await wait(400);showTurnInput();
+}
+
+function showTurnInput(){
+  const w=document.createElement('div');w.className='iw';
+  w.innerHTML=`<textarea class="ta" id="turn-ta" placeholder="One sentence — with a twist." rows="2"></textarea>
+    <div style="margin-top:.875rem;display:flex;gap:1.5rem;align-items:center;">
+      <button class="sbtn" id="turn-btn" onclick="submitTurn(this)">Continue →</button>
+      <span class="hint">Cmd/Ctrl + Enter</span>
+    </div>`;
+  C.appendChild(w);
+  setTimeout(()=>{w.classList.add('show');dn();document.getElementById('turn-ta').focus();},300);
+  addKD(()=>{const b=document.getElementById('turn-btn');if(b&&!b.disabled)submitTurn(b);});
+}
+
+async function submitTurn(btn){
+  const txt=document.getElementById('turn-ta').value.trim();if(!txt)return;
+  btn.disabled=true;
+  const w=btn.closest('.iw');w.style.opacity='0';await wait(380);w.remove();
+  window.STORY.push({role:'you',text:txt});window.TURNS++;
+  addLn(txt,'you show');await wait(400);
+  const MAX=5,isLast=window.TURNS>=MAX;
+  try{
+    const S=window.S;
+    const hist=window.STORY.map(t=>(t.role==='limen'?'STORY':'PLAYER')+': '+t.text).join('\n');
+    const p=isLast
+      ?`You are continuing a collaborative story. The player just wrote: "${txt}"\n\nWrite EXACTLY ONE sentence continuing from what the player just said. Rules: (1) do not contradict or ignore what the player said; (2) you may only describe what happens to the environment or to the non-human characters — never decide what "you" (the player character) does or has already done; (3) plain direct language, no literary style; (4) refer to the person as "you" — never she/he/they, never any name; (5) bring tension to its peak but do not resolve anything.\n\nFull story so far:\n${hist}`
+      :`You are continuing a collaborative story. The player just wrote: "${txt}"\n\nWrite EXACTLY ONE sentence continuing from what the player just said. Rules: (1) do not contradict or ignore what the player said; (2) you may only describe what happens to the environment or to the non-human characters — never decide what "you" (the player character) does or has already done; (3) plain direct language, no literary style; (4) refer to the person as "you" — never she/he/they, never any name; (5) add a small complication but do not resolve anything.\n\nFull story so far:\n${hist}`;
+    const lt=await ask(p,120);
+    window.STORY.push({role:'limen',text:lt});await say(lt,22);
+  }catch(e){
+    const fb='But something stopped them.';
+    window.STORY.push({role:'limen',text:fb});await say(fb,22);
+  }
+  if(isLast){await wait(500);addSp();await say('Stop.',65);await wait(700);beginHotSeat();}
+  else{await wait(350);showTurnInput();}
+}
+
+async function beginHotSeat(){
+  addSp();addRule();addSp();
+  await say('Now step inside the person in this story.',36);await wait(400);
+  await say('Three questions. Answer as them — not about them.',24);await wait(500);
+  window.HS_IDX=0;window.HS_DATA=[];
+  nextBeing();
+}
+
+function thingName(idx){const S=window.S;return['you'][idx];}
+
+async function nextBeing(){
+  if(window.HS_IDX>=1){beginAlley();return;}
+  addSp();await say('You are the person in this story.',42);await wait(300);
+  try{
+    const S=window.S;const hist=window.STORY.map(t=>t.text).join(' ');
+    const qs=parseJSON(await ask(`Ask someone playing the role of the person (you, ${S.youAdj}) in this story:\n${hist}\n\n3 questions in second person. Probe inner states — feelings, needs, fears, unspoken things. One about a specific moment in the story, one about their relationship with the ${S.love} or ${S.want}, one about something they haven't admitted. Do not use she/he/they or any name — only "you".\n\nReturn ONLY JSON array:\n["q1","q2","q3"]`,300));
+    window.CUR_QS=qs;
+  }catch(e){window.CUR_QS=['What did you feel in that moment?','What did you need that nothing around you could give you?','What did you almost do but didn\'t?'];}
+  window.CUR_QI=0;window.CUR_ANS=[];askQ();
+}
+
+async function askQ(){
+  const q=window.CUR_QS[window.CUR_QI];
+  await say(q,28);await wait(250);
+  const w=document.createElement('div');w.className='iw';
+  w.innerHTML=`<textarea class="ta" id="hs-ta" placeholder="Answer as this person..." rows="2"></textarea>
+    <div style="margin-top:.875rem;display:flex;gap:1.5rem;align-items:center;">
+      <button class="sbtn" id="hs-btn" onclick="submitHS(this)">→</button>
+      <span class="hint">Cmd/Ctrl + Enter</span>
+    </div>`;
+  C.appendChild(w);
+  setTimeout(()=>{w.classList.add('show');dn();document.getElementById('hs-ta').focus();},300);
+  addKD(()=>{const b=document.getElementById('hs-btn');if(b&&!b.disabled)submitHS(b);});
+}
+
+async function submitHS(btn){
+  const txt=document.getElementById('hs-ta').value.trim();if(!txt)return;
+  btn.disabled=true;
+  const w=btn.closest('.iw');w.style.opacity='0';await wait(380);w.remove();
+  window.CUR_ANS.push({q:window.CUR_QS[window.CUR_QI],a:txt});
+  addLn(txt,'you show');window.CUR_QI++;
+  if(window.CUR_QI<3){await wait(350);askQ();}
+  else{
+    window.HS_DATA.push({thing:'you',answers:window.CUR_ANS});
+    window.HS_IDX++;
+    try{
+      const ans=window.CUR_ANS.map(a=>`Q: ${a.q} A: ${a.a}`).join('\n');
+      const obs=await ask(`Someone answered these questions as the person in the story:\n${ans}\n\nWrite one short plain sentence — something they revealed without knowing. Under 15 words. Don't address them directly. No she/he/they, no names.`,80);
+      await wait(300);const el=addLn(obs,'limen show');el.style.opacity='0.45';
+    }catch(e){}
+    await wait(600);nextBeing();
+  }
+}
+
+async function beginAlley(){
+  addSp();addRule();addSp();
+  await say('One last thing.',42);await wait(400);
+  await say('The person in this story has a decision to make.',26);await wait(500);
+  window.ALLEY_ROUND=0;
+  await runAlley();
+}
+
+async function runAlley(){
+  if(window.ALLEY_ROUND>=3){await wait(400);showFinalChoice();return;}
+  const rnd=window.ALLEY_ROUND;
+  window.ALLEY_ROUND++;
+  try{
+    const hist=window.STORY.map(t=>t.text).join(' ');
+    const v=parseJSON(await ask(`The person in this story is at a moment of decision.\nStory: ${hist}\n\nRound ${rnd+1} of 3. Give two competing voices — not good vs evil, just two real pulls. Each is ONE plain sentence addressed to "you". Round 1: surface. Round 2: deeper. Round 3: what's really underneath.\n\nReturn ONLY JSON: {"v1":"...","v2":"..."}`,150));
+    addSp();
+    const el1=addLn(v.v1,'limen show');el1.style.color='#4a8fa3';
+    const el2=addLn(v.v2,'limen show');el2.style.color='#8b5e3c';
+  }catch(e){
+    const fb=[{v1:'There is still time to stop.',v2:'There was never going to be a good time.'},{v1:'You can explain it later.',v2:'You know you won\'t.'},{v1:'This is the only way.',v2:'You already know it isn\'t.'}];
+    const f=fb[rnd];
+    addSp();
+    const el1=addLn(f.v1,'limen show');el1.style.color='#4a8fa3';
+    const el2=addLn(f.v2,'limen show');el2.style.color='#8b5e3c';
+  }
+  await wait(600);runAlley();
+}
+
+async function showFinalChoice(){
+  addSp();await say('What do you choose?',40);await wait(350);
+  const w=document.createElement('div');w.className='iw';
+  w.innerHTML=`<textarea class="ta" id="choice-ta" placeholder="Write your choice here..." rows="2"></textarea>
+    <div style="margin-top:.875rem;">
+      <button class="sbtn" id="choice-btn" onclick="submitChoice(this)">This is my choice →</button>
+    </div>`;
+  C.appendChild(w);setTimeout(()=>{w.classList.add('show');dn();document.getElementById('choice-ta').focus();},300);
+}
+
+async function submitChoice(btn){
+  const choice=document.getElementById('choice-ta').value.trim();if(!choice)return;
+  btn.disabled=true;window.FINAL=choice;
+  const w=btn.closest('.iw');w.style.opacity='0';await wait(380);w.remove();
+  addLn(choice,'you show');await wait(700);buildFinalStory();
+}
+
+async function buildFinalStory(){
+  addSp();addRule();addSp();
+  const making=await say('...',50);
+  try{
+    const S=window.S;const hist=window.STORY.map(t=>t.text).join(' ');
+    const story=await ask(`Retell this story in 5-6 short plain sentences — like a picture book for adults. Keep only the most important moments. Simple words. The last sentence should include or reflect this choice: "${window.FINAL}".\n\nCharacters: the ${S.love}, ${S.want}, and a person.\nStory: ${hist}\nChoice: ${window.FINAL}\n\nWrite only the story, nothing else.`,400);
+    making.style.opacity='0';await wait(380);making.remove();
+    addSp();const sents=story.split(/(?<=[.!?])\s+/);
+    for(const s of sents){if(!s.trim())continue;await wait(300);await say(s.trim(),24);}
+  }catch(e){making.textContent='The story held together.';}
+  await wait(1000);showEnding();
+}
+
+async function showEnding(){
+  addSp();addRule();addSp();
+  document.querySelectorAll('.ln').forEach((el,i,all)=>{if(i<all.length-6){el.style.transition='opacity 1.8s ease';el.style.opacity='0.12';}});
+  await wait(700);
+  const e1=addLn('Now you know the answer.','limen show');e1.style.fontSize='clamp(16px,2.5vw,22px)';
+  await wait(1200);
+  const e2=addLn('When did you last feel something before you understood it?','dim show');
+  await wait(1200);
+  const bw=document.createElement('div');bw.className='iw';
+  bw.innerHTML='<button class="sbtn" style="opacity:.4;" onclick="restart()">Begin again</button>';
+  C.appendChild(bw);setTimeout(()=>{bw.classList.add('show');dn();},400);
+}
+
+function restart(){
+  const ov=document.getElementById('overlay');ov.classList.add('in');
+  setTimeout(()=>{
+    document.getElementById('screen-story').classList.remove('active');
+    document.getElementById('screen-entry').classList.add('active');
+    C.innerHTML='';
+    ['S','BG','STORY','TURNS','HS_IDX','HS_DATA','CUR_QS','CUR_QI','CUR_ANS','ALLEY_THING','ALLEY_ROUND','FINAL'].forEach(k=>delete window[k]);
+    document.getElementById('door-inner').classList.remove('lit');
+    const eb=document.getElementById('enter-btn');eb.disabled=false;eb.style.opacity='1';
+    setTimeout(()=>ov.classList.remove('in'),100);
+  },600);
+}
+</script>
+</body>
+</html>
