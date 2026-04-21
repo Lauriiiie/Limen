@@ -10,42 +10,32 @@
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{width:100%;height:100%;overflow:hidden;background:var(--paper);color:var(--ink);}
 body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:99;opacity:0.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:200px;}
-
 .screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity 0.7s ease;}
 .screen.active{opacity:1;pointer-events:all;}
 #sketch-bg{position:fixed;inset:0;width:100%;height:100%;z-index:0;}
-
-/* ENTRY */
 #screen-entry{z-index:10;flex-direction:column;text-align:center;}
 .wordmark{position:fixed;top:2rem;left:50%;transform:translateX(-50%);font-family:'IM Fell English',serif;font-size:12px;letter-spacing:.35em;text-transform:uppercase;color:var(--mid);z-index:20;}
 .entry-q{font-family:'IM Fell English',serif;font-size:clamp(17px,3vw,28px);font-style:italic;line-height:1.75;color:var(--ink);max-width:500px;padding:0 2rem;opacity:0;transform:translateY(8px);transition:opacity 1.2s ease 0.4s,transform 1.2s ease 0.4s;margin-bottom:3rem;}
 .entry-q.show{opacity:1;transform:translateY(0);}
-
-/* DOOR FRAME — no panel, just the frame with light inside */
 .door-scene{position:relative;width:100px;height:170px;margin:0 auto 2.5rem;opacity:0;transition:opacity 0.8s ease 1.2s;}
 .door-scene.show{opacity:1;}
 .door-inner{position:absolute;top:3px;left:3px;right:3px;bottom:3px;background:rgba(255,248,230,0.15);transition:background 1.5s ease;}
 .door-inner.lit{background:rgba(255,240,195,0.75);}
 .enter-btn{position:absolute;bottom:-2.5rem;left:50%;transform:translateX(-50%);font-family:'IM Fell English',serif;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--mid);background:none;border:none;border-bottom:1px solid var(--faint);cursor:pointer;padding:4px 0;white-space:nowrap;transition:color .25s,border-color .25s;}
 .enter-btn:hover{color:var(--ink);border-color:var(--mid);}
-
 #overlay{position:fixed;inset:0;background:rgb(255,240,195);z-index:50;opacity:0;pointer-events:none;transition:opacity 0.6s ease;}
 #overlay.in{opacity:1;pointer-events:all;}
-
-/* STORY */
 #screen-story{z-index:10;flex-direction:column;align-items:flex-start;justify-content:flex-start;padding:0;overflow:hidden;}
 #story-scroll{width:100%;height:100vh;overflow-y:auto;padding:3rem 2rem 5rem;}
 #story-scroll::-webkit-scrollbar{width:2px;}
 #story-scroll::-webkit-scrollbar-thumb{background:var(--faint);}
 #story-content{width:100%;max-width:520px;margin:0 auto;}
-
 .ln{font-family:'IM Fell English',serif;font-size:clamp(15px,2.2vw,20px);line-height:1.9;color:var(--ink);margin-bottom:.2rem;opacity:0;transform:translateY(4px);transition:opacity .8s ease,transform .8s ease;}
 .ln.show{opacity:1;transform:translateY(0);}
 .ln.limen{font-style:italic;}
 .ln.you{font-style:normal;border-left:1.5px solid var(--faint);padding-left:.875rem;}
 .ln.dim{font-style:normal;font-family:'Cormorant Garamond',serif;font-size:clamp(12px,1.6vw,14px);color:var(--mid);margin-top:1.5rem;}
 .sp{height:1rem;}.rule{width:32px;height:1px;background:var(--faint);margin:.75rem 0;}
-
 .iw{margin-top:1.5rem;opacity:0;transform:translateY(4px);transition:opacity .7s ease,transform .7s ease;}
 .iw.show{opacity:1;transform:translateY(0);}
 .grp{margin-bottom:1.75rem;}
@@ -90,6 +80,7 @@ textarea.ta::placeholder{color:var(--faint);}
 </div>
 
 <script>
+// SKETCH BG
 const sc=document.getElementById('sketch-bg');
 const sctx=sc.getContext('2d');
 let sW,sH,lines=[],sa=0;
@@ -125,6 +116,7 @@ function openDoor(){
   },1000);
 }
 
+// UTILS
 const C=document.getElementById('story-content');
 const scrl=document.getElementById('story-scroll');
 function wait(ms){return new Promise(r=>setTimeout(r,ms));}
@@ -134,15 +126,124 @@ function addSp(){const d=document.createElement('div');d.className='sp';C.append
 function addRule(){const d=document.createElement('div');d.className='rule';C.appendChild(d);}
 async function type(el,txt,spd=30){return new Promise(res=>{el.classList.add('cursor');let i=0;const iv=setInterval(()=>{el.textContent+=txt[i];i++;dn();if(i>=txt.length){clearInterval(iv);el.classList.remove('cursor');res();}},spd);});}
 async function say(txt,spd=30,delay=150){await wait(delay);const el=addLn('','limen');el.classList.add('show');await type(el,txt,spd);return el;}
-async function ask(prompt,max=500){const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:max,messages:[{role:'user',content:prompt}]})});const d=await res.json();return d.content.filter(b=>b.type==='text').map(b=>b.text).join('').trim();}
-function parseJSON(txt){return JSON.parse(txt.replace(/```json|```/g,'').trim());}
-function addKD(fn){function h(e){if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){document.removeEventListener('keydown',h);fn();}}document.addEventListener('keydown',h);return h;}
+function addKD(fn){function h(e){if(e.key==='Enter'&&(e.metaKey||e.ctrlKey)){document.removeEventListener('keydown',h);fn();}}document.addEventListener('keydown',h);}
 
+// STORY LOGIC (no API — template-based)
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+
+function makeBG(S){
+  const templates=[
+    `The ${S.n1} and ${S.n2} are in the same room. You are ${S.youAdj}, and you want to ${S.goal}.`,
+    `You are ${S.youAdj}. The ${S.n1} is nearby. So is ${S.n2}. You came here because you want to ${S.goal}.`,
+    `The ${S.n1} sits on one side of the room, the ${S.n2} on the other. You stand between them, ${S.youAdj}, thinking about what it would mean to ${S.goal}.`
+  ];
+  return pick(templates);
+}
+
+function makeConflict(S){
+  const templates=[
+    `The ${S.n1} moves first. The ${S.n2} notices. You haven't decided anything yet.`,
+    `Something shifts — the ${S.n2} is closer than it was. The ${S.n1} hasn't moved. You're still ${S.youAdj}.`,
+    `You reach toward the ${S.n1}. The ${S.n2} is in the way.`,
+    `The ${S.n2} does something unexpected. The ${S.n1} stays exactly where it is. You feel ${S.youAdj}.`
+  ];
+  return pick(templates);
+}
+
+function extractWords(text){
+  // pull out meaningful words from player text, skip common stop words
+  const stop=new Set(['the','a','an','and','or','but','in','on','at','to','for','of','with','is','was','are','were','i','you','they','he','she','it','my','your','their','his','her','we','our','that','this','have','had','has','be','been','can','t','m','s','re','ve','ll','d','so','do','did','not','no','up','out','go','get','just','then','there','when','what','how','all','its','as','by','from','into','about']);
+  return text.toLowerCase().replace(/[^\w\s]/g,'').split(/\s+/).filter(w=>w.length>2&&!stop.has(w));
+}
+
+function makeContinuation(S, playerText, turnNum, isLast){
+  const words=extractWords(playerText);
+  const w1=words[0]||S.n1;
+  const w2=words[1]||S.n2;
+
+  // sentences that echo the player's words directly
+  const echoObj=[
+    `The ${w1} kept going. The ${S.n1} didn't.`,
+    `The ${w2} was still there when everything else stopped.`,
+    `The ${w1} moved. The ${S.n2} noticed.`,
+    `The ${S.n1} and the ${w1} were not the same thing anymore.`
+  ];
+  const echoYou=[
+    `You couldn't catch the ${w1}. The ${S.n2} was still ${S.n2adj}.`,
+    `The ${w1} didn't wait. You were still ${S.youAdj}.`,
+    `You watched the ${w1}. The ${S.n1} watched you.`,
+    `The ${w2} was gone. The ${S.n1} stayed.`
+  ];
+
+  if(isLast) return pick([
+    `The ${S.n1} is on one side. The ${S.n2} is on the other. You are in between.`,
+    `The ${w1} stopped. Everything stopped. You haven't moved yet.`,
+    `The ${S.n1}. The ${S.n2}. You. None of you moving.`
+  ]);
+
+  return turnNum%2===1 ? pick(echoObj) : pick(echoYou);
+}
+
+function makeHSQuestions(S){
+  return[
+    `In this story, what do you want most — and what are you afraid of losing?`,
+    `Between the ${S.n1} and the ${S.n2}, which one feels more like you? Why?`,
+    `What haven't you said out loud in this story — but have been thinking the whole time?`
+  ];
+}
+
+function detectAlleyType(){
+  const allText=(window.STORY||[]).filter(t=>t.role==='you').map(t=>t.text).join(' ').toLowerCase()
+    +' '+((window.CUR_ANS||[]).map(a=>a.a).join(' ').toLowerCase());
+  const actionScore=['want','try','do','go','take','reach','start','move','get'].filter(w=>allText.includes(w)).length;
+  const otherScore=['they','someone','people','others','family','friend','expect','because of','for them'].filter(w=>allText.includes(w)).length;
+  const persistScore=['keep','give up','stop','quit','continue','still','again','anymore','enough'].filter(w=>allText.includes(w)).length;
+  if(otherScore>=actionScore && otherScore>=persistScore) return 'other';
+  if(persistScore>=actionScore) return 'persist';
+  return 'action';
+}
+
+function makeAlleyVoices(S, round){
+  const type=detectAlleyType();
+  const sets={
+    action:[
+      {v1:`You know what you want. You've known for a while.`,        v2:`Knowing what you want and knowing when to move are different things.`},
+      {v1:`The ${S.n1} is right there. So is the chance.`,            v2:`The ${S.n2} is also right there. You haven't looked at it properly.`},
+      {v1:`You came here to ${S.goal}. Nothing has changed that.`,    v2:`Something has changed. You just haven't said it out loud yet.`}
+    ],
+    other:[
+      {v1:`This is your life. Other people's expectations are not your decisions.`, v2:`You don't live alone. What you do lands on other people too.`},
+      {v1:`You've been ${S.youAdj} for too long. Something has to give.`,           v2:`Being ${S.youAdj} doesn't mean the answer is to take what you want.`},
+      {v1:`No one else is going to do this for you.`,                               v2:`No one else will carry the consequences either.`}
+    ],
+    persist:[
+      {v1:`Stopping now doesn't mean you failed. It means you're paying attention.`, v2:`You're closer than you think. Stopping now loses everything you've already paid.`},
+      {v1:`The ${S.n1} will still be there. There's no deadline.`,                   v2:`The ${S.n2} won't wait. Some things only happen once.`},
+      {v1:`You wanted to ${S.goal}. That was real. Is it still?`,                    v2:`You wanted to ${S.goal}. That was real. And real things don't expire.`}
+    ]
+  };
+  return sets[type][round]||sets.action[round];
+}
+
+function makeFinalStory(S, storyLines, choice){
+  const playerLines=storyLines.filter(t=>t.role==='you').map(t=>t.text);
+  const first=playerLines[0]||'';
+  const last=playerLines[playerLines.length-1]||'';
+  return[
+    `The ${S.n1} was ${S.n1adj}. The ${S.n2} was ${S.n2adj}. You were ${S.youAdj}.`,
+    `You wanted to ${S.goal}.`,
+    first ? first : `The ${S.n1} moved first.`,
+    last && last!==first ? last : `The ${S.n2} stayed where it was.`,
+    `You chose: ${choice}.`
+  ];
+}
+
+// FLOW
 async function startStory(){
   C.innerHTML='';addSp();
   await say('Give me two things — anything.',30);
   await wait(300);
-  await say('And tell me one thing you really want to do but haven\'t yet.',30);
+  await say("And tell me one thing you really want to do but haven't yet.",30);
   await wait(400);
   showSetupInputs();
 }
@@ -150,68 +251,40 @@ async function startStory(){
 function showSetupInputs(){
   const w=document.createElement('div');w.className='iw';
   w.innerHTML=`
-    <div class="grp">
-      <div class="grp-label">First thing</div>
-      <div class="row2">
-        <div class="ws"><span class="wl">noun</span><input id="love" placeholder="e.g. mirror" autocomplete="off"></div>
-        <div class="ws"><span class="wl">one word to describe it</span><input id="love-adj" class="sm" placeholder="e.g. silent" autocomplete="off"></div>
-      </div>
-    </div>
-    <div class="grp">
-      <div class="grp-label">Second thing</div>
-      <div class="row2">
-        <div class="ws"><span class="wl">noun</span><input id="want" placeholder="e.g. rain" autocomplete="off"></div>
-        <div class="ws"><span class="wl">one word to describe it</span><input id="want-adj" class="sm" placeholder="e.g. sudden" autocomplete="off"></div>
-      </div>
-    </div>
-    <div class="grp">
-      <div class="grp-label">You, right now</div>
-      <div class="row2">
-        <div class="ws"><span class="wl">one word</span><input id="you-adj" placeholder="e.g. tired" autocomplete="off"></div>
-      </div>
-    </div>
-    <div class="grp">
-      <div class="grp-label">Something you really want to do but haven't yet</div>
+    <div class="grp"><div class="grp-label">First thing</div><div class="row2">
+      <div class="ws"><span class="wl">noun</span><input id="n1" placeholder="e.g. mirror" autocomplete="off"></div>
+      <div class="ws"><span class="wl">one word to describe it</span><input id="n1adj" class="sm" placeholder="e.g. silent" autocomplete="off"></div>
+    </div></div>
+    <div class="grp"><div class="grp-label">Second thing</div><div class="row2">
+      <div class="ws"><span class="wl">noun</span><input id="n2" placeholder="e.g. rain" autocomplete="off"></div>
+      <div class="ws"><span class="wl">one word to describe it</span><input id="n2adj" class="sm" placeholder="e.g. sudden" autocomplete="off"></div>
+    </div></div>
+    <div class="grp"><div class="grp-label">You, right now</div><div class="row2">
+      <div class="ws"><span class="wl">one word</span><input id="youadj" placeholder="e.g. tired" autocomplete="off"></div>
+    </div></div>
+    <div class="grp"><div class="grp-label">Something you really want to do but haven't yet</div>
       <textarea class="ta" id="goal" placeholder="write it here..." rows="2"></textarea>
     </div>
     <button class="sbtn" onclick="submitSetup(this)">This is my world →</button>`;
-  C.appendChild(w);setTimeout(()=>{w.classList.add('show');dn();document.getElementById('love').focus();},300);
+  C.appendChild(w);setTimeout(()=>{w.classList.add('show');dn();document.getElementById('n1').focus();},300);
 }
 
 async function submitSetup(btn){
-  const fields=['love','love-adj','want','want-adj','you-adj','goal'];
+  const ids=['n1','n1adj','n2','n2adj','youadj','goal'];
   const vals={};let ok=true;
-  fields.forEach(id=>{const v=document.getElementById(id).value.trim();if(!v){document.getElementById(id).style.borderBottomColor='rgba(139,58,30,0.45)';ok=false;}else vals[id]=v;});
+  ids.forEach(id=>{const v=document.getElementById(id).value.trim();if(!v){document.getElementById(id).style.borderBottomColor='rgba(139,58,30,0.45)';ok=false;}else vals[id]=v;});
   if(!ok)return;
   btn.disabled=true;
   const w=btn.closest('.iw');w.style.transition='opacity .35s';w.style.opacity='0';
   await wait(380);w.remove();
-
-  window.S={
-    love:vals['love'],loveAdj:vals['love-adj'],
-    want:vals['want'],wantAdj:vals['want-adj'],
-    youAdj:vals['you-adj'],goal:vals['goal']
-  };
-
+  window.S={n1:vals.n1,n1adj:vals.n1adj,n2:vals.n2,n2adj:vals.n2adj,youAdj:vals.youadj,goal:vals.goal};
+  const S=window.S;
   addSp();
-  await say(`${vals['love']} — ${vals['love-adj']}.`,32);
-  await wait(200);
-  await say(`${vals['want']} — ${vals['want-adj']}.`,32);
-  await wait(200);
-  await say(`You — ${vals['you-adj']}.`,32);
-  await wait(600);
-
-  const thinking=await say('...',50);
-  try{
-    const S=window.S;
-    const bg=await ask(`Write ONE plain sentence placing these three things together in a situation: a ${S.love} (${S.loveAdj}), ${S.want} (${S.wantAdj}), and a person. The person wants: "${S.goal}". Use plain everyday language. No metaphors. No literary style. Use "you" to refer to the person — never she/he/they, never any name. Just state the situation plainly.`,150);
-    thinking.style.opacity='0';await wait(350);thinking.remove();
-    window.BG=bg;addSp();await say(bg,22);
-  }catch(e){
-    thinking.textContent=`A ${window.S.love}, ${window.S.want}, and you. You are all in the same place.`;
-    window.BG=thinking.textContent;
-  }
-  await wait(500);
+  await say(`${S.n1} — ${S.n1adj}.`,32);await wait(200);
+  await say(`${S.n2} — ${S.n2adj}.`,32);await wait(200);
+  await say(`You — ${S.youAdj}.`,32);await wait(600);
+  const bg=makeBG(S);
+  window.BG=bg;await say(bg,22);await wait(500);
   const bw=document.createElement('div');bw.className='iw';
   bw.innerHTML='<button class="sbtn" onclick="beginConflict(this)">The story begins →</button>';
   C.appendChild(bw);setTimeout(()=>{bw.classList.add('show');dn();},300);
@@ -221,20 +294,14 @@ async function beginConflict(btn){
   btn.disabled=true;const w=btn.closest('.iw');w.style.opacity='0';await wait(380);w.remove();
   addSp();addRule();addSp();
   window.STORY=[];window.TURNS=0;
-  try{
-    const S=window.S;
-    const txt=await ask(`Write ONE plain sentence to open this story. Something small happens or shifts. Do not resolve it. Use plain direct language, no literary style, no metaphors. Refer to the person as "you" — never she/he/they, never any name.\n\nThe three characters: a ${S.love} (${S.loveAdj}), ${S.want} (${S.wantAdj}), you (${S.youAdj}).\nSituation: ${window.BG}`,120);
-    window.STORY.push({role:'limen',text:txt});await say(txt,22);
-  }catch(e){
-    const fb=`The ${window.S.love} was there. So was ${window.S.want}. The person reached for one of them.`;
-    window.STORY.push({role:'limen',text:fb});await say(fb,22);
-  }
+  const txt=makeConflict(window.S);
+  window.STORY.push({role:'limen',text:txt});await say(txt,22);
   await wait(400);showTurnInput();
 }
 
 function showTurnInput(){
   const w=document.createElement('div');w.className='iw';
-  w.innerHTML=`<textarea class="ta" id="turn-ta" placeholder="One sentence — with a twist." rows="2"></textarea>
+  w.innerHTML=`<textarea class="ta" id="turn-ta" placeholder="What happens next?" rows="2"></textarea>
     <div style="margin-top:.875rem;display:flex;gap:1.5rem;align-items:center;">
       <button class="sbtn" id="turn-btn" onclick="submitTurn(this)">Continue →</button>
       <span class="hint">Cmd/Ctrl + Enter</span>
@@ -249,44 +316,22 @@ async function submitTurn(btn){
   btn.disabled=true;
   const w=btn.closest('.iw');w.style.opacity='0';await wait(380);w.remove();
   window.STORY.push({role:'you',text:txt});window.TURNS++;
-  addLn(txt,'you show');await wait(800);
+  addLn(txt,'you show');await wait(600);
   const MAX=5,isLast=window.TURNS>=MAX;
-  const S=window.S;
-  const hist=window.STORY.map(t=>(t.role==='limen'?'STORY':'PLAYER')+': '+t.text).join('\n');
-  const p=isLast
-    ?`You are continuing a collaborative story. The player just wrote: "${txt}"\n\nWrite EXACTLY ONE sentence continuing from what the player just said. Rules: (1) do not contradict or ignore what the player said; (2) you may only describe what happens to the environment or to the non-human characters — never decide what "you" (the player character) does or has already done; (3) plain direct language, no literary style; (4) refer to the person as "you" — never she/he/they, never any name; (5) bring tension to its peak but do not resolve anything.\n\nFull story so far:\n${hist}`
-    :`You are continuing a collaborative story. The player just wrote: "${txt}"\n\nWrite EXACTLY ONE sentence continuing from what the player just said. Rules: (1) do not contradict or ignore what the player said; (2) you may only describe what happens to the environment or to the non-human characters — never decide what "you" (the player character) does or has already done; (3) plain direct language, no literary style; (4) refer to the person as "you" — never she/he/they, never any name; (5) add a small complication but do not resolve anything.\n\nFull story so far:\n${hist}`;
-  let lt='';
-  try{ lt=await ask(p,120); }
-  catch(e){
-    await wait(1200);
-    try{ lt=await ask(p,120); }
-    catch(e2){ lt='...'; }
-  }
+  const lt=makeContinuation(window.S,txt,window.TURNS,isLast);
   window.STORY.push({role:'limen',text:lt});await say(lt,22);
   if(isLast){await wait(500);addSp();await say('Stop.',65);await wait(700);beginHotSeat();}
-  else{await wait(600);showTurnInput();}
+  else{await wait(400);showTurnInput();}
 }
 
 async function beginHotSeat(){
   addSp();addRule();addSp();
   await say('Now step inside the person in this story.',36);await wait(400);
   await say('Three questions. Answer as them — not about them.',24);await wait(500);
-  window.HS_IDX=0;window.HS_DATA=[];
-  nextBeing();
-}
-
-function thingName(idx){const S=window.S;return['you'][idx];}
-
-async function nextBeing(){
-  if(window.HS_IDX>=1){beginAlley();return;}
+  window.CUR_QS=makeHSQuestions(window.S);
+  window.CUR_QI=0;window.CUR_ANS=[];
   addSp();await say('You are the person in this story.',42);await wait(300);
-  try{
-    const S=window.S;const hist=window.STORY.map(t=>t.text).join(' ');
-    const qs=parseJSON(await ask(`Ask someone playing the role of the person (you, ${S.youAdj}) in this story:\n${hist}\n\n3 questions in second person. Probe inner states — feelings, needs, fears, unspoken things. One about a specific moment in the story, one about their relationship with the ${S.love} or ${S.want}, one about something they haven't admitted. Do not use she/he/they or any name — only "you".\n\nReturn ONLY JSON array:\n["q1","q2","q3"]`,300));
-    window.CUR_QS=qs;
-  }catch(e){window.CUR_QS=['What did you feel in that moment?','What did you need that nothing around you could give you?','What did you almost do but didn\'t?'];}
-  window.CUR_QI=0;window.CUR_ANS=[];askQ();
+  askQ();
 }
 
 async function askQ(){
@@ -310,16 +355,7 @@ async function submitHS(btn){
   window.CUR_ANS.push({q:window.CUR_QS[window.CUR_QI],a:txt});
   addLn(txt,'you show');window.CUR_QI++;
   if(window.CUR_QI<3){await wait(350);askQ();}
-  else{
-    window.HS_DATA.push({thing:'you',answers:window.CUR_ANS});
-    window.HS_IDX++;
-    try{
-      const ans=window.CUR_ANS.map(a=>`Q: ${a.q} A: ${a.a}`).join('\n');
-      const obs=await ask(`Someone answered these questions as the person in the story:\n${ans}\n\nWrite one short plain sentence — something they revealed without knowing. Under 15 words. Don't address them directly. No she/he/they, no names.`,80);
-      await wait(300);const el=addLn(obs,'limen show');el.style.opacity='0.45';
-    }catch(e){}
-    await wait(600);nextBeing();
-  }
+  else{await wait(600);beginAlley();}
 }
 
 async function beginAlley(){
@@ -327,27 +363,18 @@ async function beginAlley(){
   await say('One last thing.',42);await wait(400);
   await say('The person in this story has a decision to make.',26);await wait(500);
   window.ALLEY_ROUND=0;
-  await runAlley();
+  runAlley();
 }
 
 async function runAlley(){
   if(window.ALLEY_ROUND>=3){await wait(400);showFinalChoice();return;}
-  const rnd=window.ALLEY_ROUND;
+  const v=makeAlleyVoices(window.S,window.ALLEY_ROUND);
   window.ALLEY_ROUND++;
-  try{
-    const hist=window.STORY.map(t=>t.text).join(' ');
-    const v=parseJSON(await ask(`The person in this story is at a moment of decision.\nStory: ${hist}\n\nRound ${rnd+1} of 3. Give two competing voices — not good vs evil, just two real pulls. Each is ONE plain sentence addressed to "you". Round 1: surface. Round 2: deeper. Round 3: what's really underneath.\n\nReturn ONLY JSON: {"v1":"...","v2":"..."}`,150));
-    addSp();
-    const el1=addLn(v.v1,'limen show');el1.style.color='#4a8fa3';
-    const el2=addLn(v.v2,'limen show');el2.style.color='#8b5e3c';
-  }catch(e){
-    const fb=[{v1:'There is still time to stop.',v2:'There was never going to be a good time.'},{v1:'You can explain it later.',v2:'You know you won\'t.'},{v1:'This is the only way.',v2:'You already know it isn\'t.'}];
-    const f=fb[rnd];
-    addSp();
-    const el1=addLn(f.v1,'limen show');el1.style.color='#4a8fa3';
-    const el2=addLn(f.v2,'limen show');el2.style.color='#8b5e3c';
-  }
-  await wait(600);runAlley();
+  addSp();
+  const el1=addLn(v.v1,'limen show');el1.style.color='#4a8fa3';
+  await wait(300);
+  const el2=addLn(v.v2,'limen show');el2.style.color='#8b5e3c';
+  await wait(800);runAlley();
 }
 
 async function showFinalChoice(){
@@ -369,14 +396,8 @@ async function submitChoice(btn){
 
 async function buildFinalStory(){
   addSp();addRule();addSp();
-  const making=await say('...',50);
-  try{
-    const S=window.S;const hist=window.STORY.map(t=>t.text).join(' ');
-    const story=await ask(`Retell this story in 5-6 short plain sentences — like a picture book for adults. Keep only the most important moments. Simple words. The last sentence should include or reflect this choice: "${window.FINAL}".\n\nCharacters: the ${S.love}, ${S.want}, and a person.\nStory: ${hist}\nChoice: ${window.FINAL}\n\nWrite only the story, nothing else.`,400);
-    making.style.opacity='0';await wait(380);making.remove();
-    addSp();const sents=story.split(/(?<=[.!?])\s+/);
-    for(const s of sents){if(!s.trim())continue;await wait(300);await say(s.trim(),24);}
-  }catch(e){making.textContent='The story held together.';}
+  const sents=makeFinalStory(window.S,window.STORY,window.FINAL);
+  for(const s of sents){await wait(400);await say(s,24);}
   await wait(1000);showEnding();
 }
 
@@ -386,14 +407,12 @@ async function showEnding(){
   await wait(700);
   const e1=addLn('Now you know the answer.','limen show');e1.style.fontSize='clamp(16px,2.5vw,22px)';
   await wait(1200);
-  const e2=addLn('"Play" is what deep thinking looks like from the outside.','dim show');
   await wait(1200);
   const bw=document.createElement('div');bw.className='iw';
-  bw.innerHTML=`
-    <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:.5rem;">
-      <button class="sbtn" onclick="exportImage()">Save this experience →</button>
-      <button class="sbtn" style="opacity:.4;" onclick="restart()">Begin again</button>
-    </div>`;
+  bw.innerHTML=`<div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:.5rem;">
+    <button class="sbtn" onclick="exportImage()">Save this experience →</button>
+    <button class="sbtn" style="opacity:.4;" onclick="restart()">Begin again</button>
+  </div>`;
   C.appendChild(bw);setTimeout(()=>{bw.classList.add('show');dn();},400);
 }
 
@@ -402,45 +421,21 @@ async function exportImage(){
   const script=document.createElement('script');
   script.src='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
   script.onload=async()=>{
-    // make all content fully visible for capture
     const allLines=document.querySelectorAll('.ln');
     const prevOpacities=[];
     allLines.forEach((el,i)=>{prevOpacities[i]=el.style.opacity;el.style.opacity='1';});
-
     const content=document.getElementById('story-content');
     const scrollEl=document.getElementById('story-scroll');
-    const prevScroll=scrollEl.scrollTop;
-    scrollEl.scrollTop=0;
-
+    const prevScroll=scrollEl.scrollTop;scrollEl.scrollTop=0;
     await wait(300);
-
     try{
-      const canvas=await html2canvas(content,{
-        backgroundColor:'#f0ebe0',
-        scale:2,
-        useCORS:true,
-        logging:false,
-        width:content.offsetWidth,
-        height:content.scrollHeight,
-        windowWidth:content.offsetWidth,
-        windowHeight:content.scrollHeight
-      });
-      const link=document.createElement('a');
-      link.download='limen-experience.png';
-      link.href=canvas.toDataURL('image/png');
-      link.click();
-    }catch(err){
-      btn.textContent='Could not save — try a screenshot instead';
-      btn.disabled=false;
-      return;
-    }
-
-    // restore opacities
+      const canvas=await html2canvas(content,{backgroundColor:'#f0ebe0',scale:2,useCORS:true,logging:false,width:content.offsetWidth,height:content.scrollHeight,windowWidth:content.offsetWidth,windowHeight:content.scrollHeight});
+      const link=document.createElement('a');link.download='limen-experience.png';link.href=canvas.toDataURL('image/png');link.click();
+    }catch(err){btn.textContent='Could not save — try a screenshot instead';btn.disabled=false;return;}
     allLines.forEach((el,i)=>{el.style.opacity=prevOpacities[i];});
-    scrollEl.scrollTop=prevScroll;
-    btn.textContent='Saved ✓';
+    scrollEl.scrollTop=prevScroll;btn.textContent='Saved ✓';
   };
-  script.onerror=()=>{btn.textContent='Could not load — try a screenshot instead';btn.disabled=false;};
+  script.onerror=()=>{btn.textContent='Could not save — try a screenshot instead';btn.disabled=false;};
   document.head.appendChild(script);
 }
 
@@ -450,7 +445,7 @@ function restart(){
     document.getElementById('screen-story').classList.remove('active');
     document.getElementById('screen-entry').classList.add('active');
     C.innerHTML='';
-    ['S','BG','STORY','TURNS','HS_IDX','HS_DATA','CUR_QS','CUR_QI','CUR_ANS','ALLEY_THING','ALLEY_ROUND','FINAL'].forEach(k=>delete window[k]);
+    ['S','BG','STORY','TURNS','CUR_QS','CUR_QI','CUR_ANS','ALLEY_ROUND','FINAL'].forEach(k=>delete window[k]);
     document.getElementById('door-inner').classList.remove('lit');
     const eb=document.getElementById('enter-btn');eb.disabled=false;eb.style.opacity='1';
     setTimeout(()=>ov.classList.remove('in'),100);
